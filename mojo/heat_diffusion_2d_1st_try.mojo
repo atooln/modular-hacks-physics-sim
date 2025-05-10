@@ -98,14 +98,6 @@ def main():
 
         print("N", N)
         print("steps", steps)
-        # print
-        # ctx.enqueue_function[heat_step](
-        #     in_tensor, 
-        #     out_tensor,
-        #     grid_dim=grid,
-        #     block_dim=block
-        # )
-        # ctx.synchronize()
 
         for _ in range(steps):
             ctx.enqueue_function[heat_step](
@@ -116,7 +108,7 @@ def main():
             )
             # ctx.enqueue_function[apply_neumann_bc](out_tensor, N, N)
             ctx.synchronize()
-            # print("Step completed")
+            break
         print("Simulation completed; Steps:", steps)
 
         # Read final result
