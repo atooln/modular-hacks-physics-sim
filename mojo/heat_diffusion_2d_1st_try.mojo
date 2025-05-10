@@ -18,12 +18,17 @@ alias dtype = DType.float32
 alias layout = Layout.row_major(N, N)
 
 # GPU kernel for FTCS update
-fn heat_step(input: LayoutTensor[dtype], output: LayoutTensor[dtype]):
+fn heat_step(input: LayoutTensor[dtype, layout, MutableAnyOrigin], output: LayoutTensor[dtype, layout, MutableAnyOrigin]):
     var x = block_idx.x * block_dim.x + thread_idx.x
     var y = block_idx.y * block_dim.y + thread_idx.y
+    
+    if x > width or y > height:
+        return
 
+    print("x", x, "y", y)
     if x > 0 and y > 0 and x < width - 1 and y < height - 1:
         # Apply Dirichlet boundary condition (fixed value, e.g., 0.0)
+       
         output[y * width + x] = 0.0
     else:
         var center = input[y, x]
@@ -59,6 +64,7 @@ def main():
         print("No compatible GPU found")
     else:
         ctx = DeviceContext()
+        print("Found GPU:", ctx.name())
         # create host buffers
         in_host_buffer = ctx.enqueue_create_host_buffer[dtype](N * N)
         ctx.synchronize()
@@ -85,17 +91,27 @@ def main():
             
         # Run simulation
         alias block = (16, 16)
-        alias grid = ((N + 15) // 16, (N + 15) // 16)
+        alias grid = (ceildiv((N + 15), 16), ceildiv((N + 15), 16))
 
-        for _ in range(steps):
-            ctx.enqueue_function[heat_step](
-                in_tensor, 
-                out_tensor,
-                block_dim=block,
-                grid_dim=grid
-            )
-            # ctx.enqueue_function[apply_neumann_bc](out_tensor, N, N)
-            ctx.synchronize()
+        print("N", N)
+        # print
+        ctx.enqueue_function[heat_step](
+            in_tensor, 
+            out_tensor,
+            grid_dim=grid,
+            block_dim=block
+        )
+        ctx.synchronize()
+
+        # for _ in range(steps):
+        #     ctx.enqueue_function[heat_step](
+        #         in_tensor, 
+        #         out_tensor,
+        #         block_dim=block,
+        #         grid_dim=grid
+        #     )
+        #     # ctx.enqueue_function[apply_neumann_bc](out_tensor, N, N)
+        #     ctx.synchronize()
 
         # Read final result
         # with out_tensor.map_to_host() as final_result:
