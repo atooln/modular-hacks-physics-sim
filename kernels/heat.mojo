@@ -16,13 +16,31 @@ fn heat2d(
     previous: LayoutTensor[float_dtype, layout, MutableAnyOrigin],
     out: LayoutTensor[float_dtype, layout, MutableAnyOrigin],
 ):
-    """Calculate the element-wise sum of two vectors on the GPU."""
+    """Iterative calculation of heat values based on stencil method."""
 
-    # Calculate the index of the vector element for the thread to process
-    var tid = block_idx.x * block_dim.x + thread_idx.x
+    # Calculate 2D thread indices
+    var x = block_idx.x * block_dim.x + thread_idx.x
+    var y = block_idx.y * block_dim.y + thread_idx.y
 
-    # Don't process out of bounds elements
-    if tid < vector_size:
-        pass
+    # Check if the thread is within grid bounds
+    if x < sim_grid_width and y < sim_grid_height:
+        # Boundary conditions: edges and corners
+        if x == 0 or x == sim_grid_width - 1 or y == 0 or y == sim_grid_height - 1:
+            # Apply Dirichlet boundary condition (fixed value, e.g., 0.0)
+            out[y * sim_grid_width + x] = 0.0
+        else:
+            # Interior points: apply 5-point stencil for heat equation
+            # Example: u_new = u_current + alpha * (u_left + u_right + u_top + u_bottom - 4 * u_center)
+            alias alpha = 0.25  # Diffusion coefficient (adjust as needed)
+            var value = current[y * sim_grid_width + x] + alpha * (
+                current[y * sim_grid_width + (x - 1)] +      # Left
+                current[y * sim_grid_width + (x + 1)] +      # Right
+                current[(y - 1) * sim_grid_width + x] +      # Top
+                current[(y + 1) * sim_grid_width + x] -      # Bottom
+                4.0 * current[y * sim_grid_width + x]        # Center
+            )
+            out[y * sim_grid_width + x] = value
+
+
 
 
