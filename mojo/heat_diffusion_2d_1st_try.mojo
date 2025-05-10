@@ -22,21 +22,24 @@ fn heat_step(input: LayoutTensor[dtype, layout, MutableAnyOrigin], output: Layou
     var x = block_idx.x * block_dim.x + thread_idx.x
     var y = block_idx.y * block_dim.y + thread_idx.y
     
-    if x > width or y > height:
-        return
+    if x < width and y < height:
+        
+        if x == 0 or y == 0 or x == width - 1 or y == height - 1:
+            # Apply Dirichlet boundary condition (fixed value, e.g., 0.0)
+            output[y * width + x] = 0.0
+        else:
+            var yprev = y - 1
+            var ynext = y + 1
+            var xprev = x - 1
+            var xnext = x + 1
+            # print("x", x, "xprev", xprev, "xnext", xnext, "y", y, "yprev", yprev, "ynext", ynext)
 
-    print("x", x, "y", y)
-    if x > 0 and y > 0 and x < width - 1 and y < height - 1:
-        # Apply Dirichlet boundary condition (fixed value, e.g., 0.0)
-       
-        output[y * width + x] = 0.0
-    else:
-        var center = input[y, x]
-        var up = input[y - 1, x]
-        var down = input[y + 1, x]
-        var left = input[y, x - 1]
-        var right = input[y, x + 1]
-        output[y, x] = (1.0 - 4.0 * r) * center + r * (up + down + left + right)
+            var center = input[y, x]
+            var up = input[y - 1, x]
+            var down = input[y + 1, x]
+            var left = input[y, x - 1]
+            var right = input[y, x + 1]
+            output[y, x] = (1.0 - 4.0 * r) * center + r * (up + down + left + right)
 
 # Kernel to apply Neumann boundary conditions
 fn apply_neumann_bc(grid: LayoutTensor[dtype], width: Int, height: Int):
@@ -90,28 +93,31 @@ def main():
         out_tensor = LayoutTensor[dtype, layout](out_device_buffer)
             
         # Run simulation
-        alias block = (16, 16)
-        alias grid = (ceildiv((N + 15), 16), ceildiv((N + 15), 16))
+        alias block = (4, 4)
+        alias grid = (ceildiv(N, 4), ceildiv(N, 4))
 
         print("N", N)
+        print("steps", steps)
         # print
-        ctx.enqueue_function[heat_step](
-            in_tensor, 
-            out_tensor,
-            grid_dim=grid,
-            block_dim=block
-        )
-        ctx.synchronize()
+        # ctx.enqueue_function[heat_step](
+        #     in_tensor, 
+        #     out_tensor,
+        #     grid_dim=grid,
+        #     block_dim=block
+        # )
+        # ctx.synchronize()
 
-        # for _ in range(steps):
-        #     ctx.enqueue_function[heat_step](
-        #         in_tensor, 
-        #         out_tensor,
-        #         block_dim=block,
-        #         grid_dim=grid
-        #     )
-        #     # ctx.enqueue_function[apply_neumann_bc](out_tensor, N, N)
-        #     ctx.synchronize()
+        for _ in range(steps):
+            ctx.enqueue_function[heat_step](
+                in_tensor, 
+                out_tensor,
+                block_dim=block,
+                grid_dim=grid
+            )
+            # ctx.enqueue_function[apply_neumann_bc](out_tensor, N, N)
+            ctx.synchronize()
+            # print("Step completed")
+        print("Simulation completed; Steps:", steps)
 
         # Read final result
         # with out_tensor.map_to_host() as final_result:
