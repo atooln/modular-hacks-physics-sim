@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Live Heatmap via WebSocket</title>
+  <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+  <style>
+    body { font-family: sans-serif; margin: 1em; }
+    #plot { width: 90vw; height: 80vh; }
+  </style>
+</head>
+<body>
+
+<h2>Live Heatmap Simulation</h2>
+<div id="plot">Waiting for data...</div>
+
+<script>
+  const socket = new WebSocket(`ws://${location.host}/ws/heatmap`);
+
+  socket.onopen = () => console.log("WebSocket connected");
+
+  socket.onmessage = function (event) {
+    const matrix = JSON.parse(event.data);
+
+    Plotly.react('plot', [{
+      z: matrix,
+      type: 'heatmap',
+      colorscale: 'Viridis',
+    }], {
+      title: 'Live Heatmap',
+      xaxis: { title: 'X' },
+      yaxis: { title: 'Y' }
+    });
+  };
+
+  socket.onerror = (err) => console.error("WebSocket error:", err);
+</script>
+
+</body>
+</html>

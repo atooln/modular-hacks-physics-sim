@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import animation
 from mpl_toolkits.mplot3d import Axes3D
-
+import pandas as pd 
 # Parameters
 r = 1 / 4
 h = 0.05
@@ -52,6 +52,12 @@ for k in range(nt - 1):
     u[-1, 0, k+1] = (u[-2, 0, k+1] + u[-1, 1, k+1]) / 2
     u[-1, -1, k+1] = (u[-2, -1, k+1] + u[-1, -2, k+1]) / 2
 
+    print(k)
+
+    if k % 5 == 0:
+        pd.DataFrame(u[:, :, k]).to_csv("./visualizer/static/sample.csv", index=False, header=False)
+
+
 # Create figure
 fig = plt.figure()
 ax = fig.add_subplot(111, projection='3d')
@@ -64,6 +70,7 @@ def update(frame):
     ax.clear()
     ax.set_zlim(0, 1)
     ax.set_title(f'Time step: {frame}')
+    
     return [ax.plot_surface(X, Y, u[:, :, frame], cmap='viridis')]
 
 # Frames every 5 time steps
