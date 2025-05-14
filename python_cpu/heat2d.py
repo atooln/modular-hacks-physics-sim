@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import animation
 from mpl_toolkits.mplot3d import Axes3D
-import pandas as pd 
+
 # Parameters
 r = 1 / 4
 h = 0.05
@@ -10,7 +10,7 @@ tau = r * h**2
 
 x = np.arange(-1, 1 + h, h)
 y = np.arange(-1, 1 + h, h)
-t = np.arange(0, 1 + tau, tau)
+t = np.arange(0, 4 + tau, tau)
 
 # Grid size
 nx, ny, nt = len(x), len(y), len(t)
@@ -52,12 +52,6 @@ for k in range(nt - 1):
     u[-1, 0, k+1] = (u[-2, 0, k+1] + u[-1, 1, k+1]) / 2
     u[-1, -1, k+1] = (u[-2, -1, k+1] + u[-1, -2, k+1]) / 2
 
-    print(k)
-
-    if k % 5 == 0:
-        pd.DataFrame(u[:, :, k]).to_csv("./visualizer/static/sample.csv", index=False, header=False)
-
-
 # Create figure
 fig = plt.figure()
 ax = fig.add_subplot(111, projection='3d')
@@ -70,7 +64,6 @@ def update(frame):
     ax.clear()
     ax.set_zlim(0, 1)
     ax.set_title(f'Time step: {frame}')
-    
     return [ax.plot_surface(X, Y, u[:, :, frame], cmap='viridis')]
 
 # Frames every 5 time steps
@@ -80,4 +73,4 @@ ani = animation.FuncAnimation(
 )
 
 # Save to GIF (requires Pillow)
-ani.save("heat_diffusion.gif", writer='pillow', fps=5)
+ani.save("heat_diffusion1.gif", writer='pillow', fps=5)

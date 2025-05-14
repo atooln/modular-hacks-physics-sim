@@ -1,38 +1,30 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Live Heatmap via WebSocket</title>
-  <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+  <title>Live Heatmap Image</title>
   <style>
-    body { font-family: sans-serif; margin: 1em; }
-    #plot { width: 90vw; height: 80vh; }
+    body { font-family: sans-serif; margin: 1em; text-align: center; }
+    img { width: 90vw; height: auto; border: 1px solid #ccc; }
   </style>
 </head>
 <body>
 
-<h2>Live Heatmap Simulation</h2>
-<div id="plot">Waiting for data...</div>
+<h2>Live Heatmap</h2>
+<img id="heatmap" src="/heatmap.png" alt="Heatmap" />
 
 <script>
-  const socket = new WebSocket(`ws://${location.host}/ws/heatmap`);
+  const img = document.getElementById("heatmap");
 
-  socket.onopen = () => console.log("WebSocket connected");
+  function updateImage() {
+    const timestamp = Date.now();
+    img.src = `/heatmap.png?ts=${timestamp}`;
+  }
 
-  socket.onmessage = function (event) {
-    const matrix = JSON.parse(event.data);
-
-    Plotly.react('plot', [{
-      z: matrix,
-      type: 'heatmap',
-      colorscale: 'Viridis',
-    }], {
-      title: 'Live Heatmap',
-      xaxis: { title: 'X' },
-      yaxis: { title: 'Y' }
-    });
+  img.onerror = () => {
+    console.warn("Failed to load heatmap.png. Waiting for next update...");
   };
 
-  socket.onerror = (err) => console.error("WebSocket error:", err);
+  setInterval(updateImage, 1000);
 </script>
 
 </body>
